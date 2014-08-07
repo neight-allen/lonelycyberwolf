@@ -10,6 +10,8 @@ module Actor.Clerk
     , postBid
     , cancelAsk
     , cancelBid
+
+    , clerk
     ) where
 
 import           Control.Distributed.Process                         hiding
@@ -18,6 +20,7 @@ import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Binary
 import           Data.Typeable
 import           Data.UUID
+import           Data.UUID.V4
 import           GHC.Generics
 import           GHC.Int
 
@@ -55,4 +58,32 @@ cancelBid ClerkId{..} o = call unClerkId $ CancelBid o
 
 ----
 
+clerk :: ProcessDefinition Integer
+clerk = ProcessDefinition
+        { apiHandlers            = [ handleCall_ postAsk'
+                                   , handleCall_ postBid'
+                                   , handleCall_ cancelAsk'
+                                   , handleCall_ cancelBid'
+                                   ]
+        , infoHandlers           = []
+        , exitHandlers           = []
+        , timeoutHandler         = \s _ -> continue s
+        , shutdownHandler        = \_ _ -> return ()
+        , unhandledMessagePolicy = Drop
+        }
 
+postAsk' :: PostAsk -> Process OrderId
+postAsk' (PostAsk p q) = do
+        oid <- liftIO nextRandom
+        return oid
+
+postBid' :: PostBid -> Process OrderId
+postBid' (PostBid p q) = do
+        oid <- liftIO nextRandom
+        return oid
+
+cancelAsk' :: CancelAsk -> Process ()
+cancelAsk' (CancelAsk oid) = return ()
+
+cancelBid' :: CancelBid -> Process ()
+cancelBid' (CancelBid oid) = return ()
