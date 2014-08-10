@@ -124,14 +124,10 @@ postBid' ob (PostBid p q) = do
         reply (OrderId oid) ob
 
 cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
-cancelAsk' ob (CancelAsk oid) = do
-        let ab = deleteIx oid (askBook ob)
-        reply False (ob { askBook = ab })
+cancelAsk' ob (CancelAsk oid) = reply False (ob { askBook = deleteIx oid (askBook ob) })
 
 cancelBid' :: OrderBook -> CancelBid -> Process (ProcessReply Bool OrderBook)
-cancelBid' ob (CancelBid oid) = do
-        let bb = deleteIx oid (bidBook ob)
-        reply False (ob { bidBook = bb })
+cancelBid' ob (CancelBid oid) = reply False (ob { bidBook = deleteIx oid (bidBook ob) })
 
 ---------------
 -- Utilities --
