@@ -16,7 +16,8 @@ module Actor.Clerk
     ) where
 
 import           Control.Distributed.Process                         hiding
-                                                                      (call)
+                                                                      (Match,
+                                                                      call)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Binary
 import           Data.Data
@@ -67,6 +68,11 @@ cancelBid ClerkId{..} o = call unClerkId $ CancelBid o
 -- Implementation --
 --------------------
 
+type AskId = OrderId
+type BidId = OrderId
+
+data Match = Match AskId BidId Price Quantity
+
 data Order = Order OrderId Price Quantity deriving (Typeable, Data)
 
 instance Eq Order where
@@ -80,7 +86,10 @@ instance Indexable Order where
                   , ixGen (Proxy :: Proxy Price)
                   ]
 
-data OrderBook = OrderBook !(IxSet Order)
+data OrderBook = OrderBook
+        { askBook :: !(IxSet Order)
+        , bidBook :: !(IxSet Order)
+        }
 
 ----
 
@@ -99,8 +108,14 @@ clerk = ProcessDefinition
         }
 
 postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply OrderId OrderBook)
-postAsk' ob (PostAsk p q) = do
+postAsk' ob@OrderBook{..} (PostAsk p q) = do
         oid <- liftIO nextRandom
+
+        let (fo, ml, nob) = attemptFill (Order (OrderId oid) p q) (<) ob
+        {-let filledBids = attemptFill (Order (OrderId oid) p q) $-}
+                            {-toDescList (Proxy :: Proxy Price) bidBook-}
+
+
         reply (OrderId oid) ob
 
 postBid' :: OrderBook -> PostBid -> Process (ProcessReply OrderId OrderBook)
@@ -109,7 +124,21 @@ postBid' ob (PostBid p q) = do
         reply (OrderId oid) ob
 
 cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
-cancelAsk' ob (CancelAsk oid) = reply False ob
+cancelAsk' ob (CancelAsk oid) = deleteIx oid ob >>= reply False
 
 cancelBid' :: OrderBook -> CancelBid -> Process (ProcessReply Bool OrderBook)
-cancelBid' ob (CancelBid oid) = reply False ob
+cancelBid' ob (CancelBid oid) = deleteIx oid ob >>= reply False
+
+---------------
+-- Utilities --
+---------------
+
+{-attemptFill :: Order -> [Order] -> (Order, [Order])-}
+{-attemptFill = undefined-}
+
+{-attemptFill :: Order -> Operation Price -> OrderBook -> (Maybe Order, [Match], OrderBook)-}
+{-attemptFill = undefined-}
+
+fillAsk :: Order -> OrderBook -> (Maybe Order, [Match], OrderBook)
+fillAsk o ob = undefined
+    where nextBid = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob)
