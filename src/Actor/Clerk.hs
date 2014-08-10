@@ -111,7 +111,7 @@ postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply OrderId OrderBook)
 postAsk' ob@OrderBook{..} (PostAsk p q) = do
         oid <- liftIO nextRandom
 
-        let (fo, ml, nob) = attemptFill (Order (OrderId oid) p q) (<) ob
+        {-let (fo, ml, nob) = attemptFill (Order (OrderId oid) p q) (<) ob-}
         {-let filledBids = attemptFill (Order (OrderId oid) p q) $-}
                             {-toDescList (Proxy :: Proxy Price) bidBook-}
 
@@ -124,10 +124,14 @@ postBid' ob (PostBid p q) = do
         reply (OrderId oid) ob
 
 cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
-cancelAsk' ob (CancelAsk oid) = deleteIx oid ob >>= reply False
+cancelAsk' ob (CancelAsk oid) = do
+        let ab = deleteIx oid (askBook ob)
+        reply False (ob { askBook = ab })
 
 cancelBid' :: OrderBook -> CancelBid -> Process (ProcessReply Bool OrderBook)
-cancelBid' ob (CancelBid oid) = deleteIx oid ob >>= reply False
+cancelBid' ob (CancelBid oid) = do
+        let bb = deleteIx oid (bidBook ob)
+        reply False (ob { bidBook = bb })
 
 ---------------
 -- Utilities --
@@ -139,6 +143,6 @@ cancelBid' ob (CancelBid oid) = deleteIx oid ob >>= reply False
 {-attemptFill :: Order -> Operation Price -> OrderBook -> (Maybe Order, [Match], OrderBook)-}
 {-attemptFill = undefined-}
 
-fillAsk :: Order -> OrderBook -> (Maybe Order, [Match], OrderBook)
-fillAsk o ob = undefined
-    where nextBid = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob)
+{-fillAsk :: Order -> OrderBook -> (Maybe Order, [Match], OrderBook)-}
+{-fillAsk o ob = undefined-}
+    {-where nextBid = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob)-}
