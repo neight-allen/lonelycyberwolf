@@ -15,6 +15,10 @@ cabal-version:       >=1.10
 library
     hs-source-dirs:     src
     exposed-modules:    Actor.Clerk
+                    ,   Actor.Clerk.Implementation
+                    ,   Actor.Merchant
+                    ,   Actor.Merchant.Implementation
+                    ,   Actor.Types
     -- other-modules:
     -- other-extensions:
     default-language:   Haskell2010
