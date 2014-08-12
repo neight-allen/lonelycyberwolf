@@ -17,9 +17,11 @@ module Actor.Clerk
 
 import           Control.Distributed.Process                         hiding
                                                                       (Match,
-                                                                      call)
+                                                                      call,
+                                                                      match)
 import           Control.Distributed.Process.Platform.ManagedProcess
-import           Data.Binary
+import           Control.Monad.State
+import           Data.Binary                                         (Binary)
 import           Data.Data
 import           Data.IxSet
 import           Data.Typeable
@@ -33,8 +35,8 @@ import           GHC.Int
 ---------------
 
 newtype OrderId  = OrderId { unOrderId :: UUID }    deriving (Eq, Ord, Typeable, Data, Binary)
-newtype Price    = Price   { unPrice :: Int64}      deriving (Eq, Ord, Num, Enum, Typeable, Data, Binary)
-newtype Quantity = Quantity { unQuantity :: Int32 } deriving (Eq, Ord, Num, Enum, Typeable, Data, Binary)
+newtype Price    = Price   { unPrice :: Int64 }     deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary)
+newtype Quantity = Quantity { unQuantity :: Int32 } deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary)
 
 newtype ClerkId = ClerkId { unClerkId :: ProcessId } deriving (Eq, Ord)
 
@@ -68,8 +70,13 @@ cancelBid ClerkId{..} o = call unClerkId $ CancelBid o
 -- Implementation --
 --------------------
 
+type Ask = Order
+type Bid = Order
+
 type AskId = OrderId
 type BidId = OrderId
+
+type BookTrans = (IxSet Order -> IxSet Order)
 
 data Match = Match AskId BidId Price Quantity
 
@@ -107,21 +114,43 @@ clerk = ProcessDefinition
         , unhandledMessagePolicy = Drop
         }
 
-postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply OrderId OrderBook)
-postAsk' ob@OrderBook{..} (PostAsk p q) = do
+postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply (Maybe OrderId) OrderBook)
+postAsk' ob (PostAsk p q)
+    | p > 0 && q > 0 = do
         oid <- liftIO nextRandom
 
-        {-let (fo, ml, nob) = attemptFill (Order (OrderId oid) p q) (<) ob-}
-        {-let filledBids = attemptFill (Order (OrderId oid) p q) $-}
-                            {-toDescList (Proxy :: Proxy Price) bidBook-}
+        let (a, trans, matches) = match (Order (OrderId oid) p q) $
+                                    takeWhile (\(Order _ bp _) -> bp > p) $
+                                        toDescList (Proxy :: Proxy Price) (bidBook ob)
 
+        let bb  = foldl (\bb' t -> t bb') (bidBook ob) trans
+            ob' = ob { bidBook = bb }
 
-        reply (OrderId oid) ob
+        {-TODO: Emit messages-}
 
-postBid' :: OrderBook -> PostBid -> Process (ProcessReply OrderId OrderBook)
-postBid' ob (PostBid p q) = do
+        case a of
+            Just a'@(Order aid _ _) -> reply (Just aid) (ob' { askBook = insert a' (askBook ob') })
+            Nothing                 -> reply Nothing    ob'
+    | otherwise      = reply Nothing ob
+
+postBid' :: OrderBook -> PostBid -> Process (ProcessReply (Maybe OrderId) OrderBook)
+postBid' ob (PostBid p q)
+    | p > 0 && q > 0 = do
         oid <- liftIO nextRandom
-        reply (OrderId oid) ob
+
+        let (b, trans, matches) = match (Order (OrderId oid) p q) $
+                                    takeWhile (\(Order _ ap _) -> ap < p) $
+                                        toAscList (Proxy :: Proxy Price) (askBook ob)
+
+        let ab  = foldl (\ab' t -> t ab') (askBook ob) trans
+            ob' = ob { askBook = ab }
+
+        {-TODO: Emit messages-}
+
+        case b of
+            Just b'@(Order bid _ _) -> reply (Just bid) (ob' { bidBook = insert b' (bidBook ob') })
+            Nothing                 -> reply Nothing ob'
+    | otherwise      = reply Nothing ob
 
 cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
 cancelAsk' ob (CancelAsk oid) = reply False (ob { askBook = deleteIx oid (askBook ob) })
@@ -133,12 +162,21 @@ cancelBid' ob (CancelBid oid) = reply False (ob { bidBook = deleteIx oid (bidBoo
 -- Utilities --
 ---------------
 
-{-attemptFill :: Order -> [Order] -> (Order, [Order])-}
-{-attemptFill = undefined-}
+match :: Order -> [Order] -> (Maybe Order, [BookTrans], [Match])
+match f os = match' os (Just f, [], [])
 
-{-attemptFill :: Order -> Operation Price -> OrderBook -> (Maybe Order, [Match], OrderBook)-}
-{-attemptFill = undefined-}
+match' :: [Order] -> (Maybe Order, [BookTrans], [Match]) -> (Maybe Order, [BookTrans], [Match])
+{-# INLINE match' #-}
+match' _      (Nothing, ts, ms) = (Nothing, ts, ms)
+match' []     e                 = e
+match' (o:os) (Just  f, ts, ms) = let (f', t, m) = matchQ f o
+                                   in match' os (f', t:ts, m:ms)
 
-{-fillAsk :: Order -> OrderBook -> (Maybe Order, [Match], OrderBook)-}
-{-fillAsk o ob = undefined-}
-    {-where nextBid = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob)-}
+matchQ :: Order -> Order -> (Maybe Order, BookTrans, Match)
+{-# INLINE matchQ #-}
+matchQ (Order fid fp fq) (Order oid op oq) =
+        case compare fq oq of
+            LT -> (Nothing                      , updateIx oid (Order oid op (oq - fq)), Match fid oid (med fp op) fq)
+            GT -> (Just (Order fid fp (fq - oq)), deleteIx oid                         , Match fid oid (med fp op) oq)
+            EQ -> (Nothing                      , deleteIx oid                         , Match fid oid (med fp op) oq)
+    where med p0 p1 = (p0 + p1) `div` 2
