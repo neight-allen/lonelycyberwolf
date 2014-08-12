@@ -18,9 +18,7 @@ module Actor.Clerk
     ) where
 
 import           Control.Distributed.Process                         hiding
-                                                                      (Match,
-                                                                      call,
-                                                                      match)
+                                                                      (call)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Binary                                         (Binary)
 import           Data.Data

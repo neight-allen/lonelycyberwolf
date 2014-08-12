@@ -8,7 +8,6 @@ module Actor.Clerk.Implementation
 
 import           Control.Distributed.Process                         hiding
                                                                       (Match,
-                                                                      call,
                                                                       match)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Data
