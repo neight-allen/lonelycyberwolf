@@ -20,7 +20,6 @@ import           Control.Distributed.Process                         hiding
                                                                       call,
                                                                       match)
 import           Control.Distributed.Process.Platform.ManagedProcess
-import           Control.Monad.State
 import           Data.Binary                                         (Binary)
 import           Data.Data
 import           Data.IxSet
