@@ -14,7 +14,9 @@ cabal-version:       >=1.10
 
 library
     hs-source-dirs:     src
-    exposed-modules:    Actor.Clerk
+    exposed-modules:    Actor.Conductor
+                    ,   Actor.Conductor.Implementation
+                    ,   Actor.Clerk
                     ,   Actor.Clerk.Implementation
                     ,   Actor.Merchant
                     ,   Actor.Merchant.Implementation
