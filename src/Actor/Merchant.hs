@@ -16,5 +16,3 @@ import           Data.Typeable
 import           GHC.Generics
 
 import           Actor.Types
-
-newtype MerchantId = MerchantId { unMerchantId :: ProcessId } deriving (Eq, Ord)

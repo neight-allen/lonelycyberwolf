@@ -27,8 +27,6 @@ import           GHC.Generics
 
 import           Actor.Types
 
-newtype ClerkId = ClerkId { unClerkId :: ProcessId } deriving (Eq, Ord)
-
 data PostAsk = PostAsk Price Quantity deriving (Typeable, Generic)
 instance Binary PostAsk
 

@@ -16,5 +16,3 @@ import           Data.Typeable
 import           GHC.Generics
 
 import           Actor.Types
-
-newtype ConductorId = ConductorId { unConductorId :: ProcessId } deriving (Eq, Ord)
