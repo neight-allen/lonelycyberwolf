@@ -27,10 +27,10 @@ import           GHC.Generics
 
 import           Actor.Types
 
-data PostAsk = PostAsk Price Quantity deriving (Typeable, Generic)
+data PostAsk = PostAsk MerchantId Price Quantity deriving (Typeable, Generic)
 instance Binary PostAsk
 
-data PostBid = PostBid Price Quantity deriving (Typeable, Generic)
+data PostBid = PostBid MerchantId Price Quantity deriving (Typeable, Generic)
 instance Binary PostBid
 
 data CancelAsk = CancelAsk OrderId deriving (Typeable, Generic)
@@ -41,11 +41,11 @@ instance Binary CancelBid
 
 ----
 
-postAsk :: ClerkId -> Price -> Quantity -> Process OrderId
-postAsk ClerkId{..} p q = call unClerkId $ PostAsk p q
+postAsk :: ClerkId -> MerchantId -> Price -> Quantity -> Process OrderId
+postAsk ClerkId{..} m p q = call unClerkId $ PostAsk m p q
 
-postBid :: ClerkId -> Price -> Quantity -> Process OrderId
-postBid ClerkId{..} p q = call unClerkId $ PostBid p q
+postBid :: ClerkId -> MerchantId -> Price -> Quantity -> Process OrderId
+postBid ClerkId{..} m p q = call unClerkId $ PostBid m p q
 
 cancelAsk :: ClerkId -> OrderId -> Process ()
 cancelAsk ClerkId{..} o = call unClerkId $ CancelAsk o

@@ -21,9 +21,9 @@ import           GHC.Int
 
 -- Process Types --
 
-newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord)
-newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord)
-newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord)
+newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary)
+newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary)
+newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary)
 
 --
 
