@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
-
 module Actor.Clerk.Implementation
     ( OrderBook (..)
     , clerk

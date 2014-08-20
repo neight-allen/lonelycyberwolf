@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable         #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Actor.Types
     ( ConductorId (..)
     , ClerkId (..)
