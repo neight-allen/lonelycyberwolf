@@ -13,7 +13,11 @@ import           Data.Typeable
 import           Data.UUID.V4
 
 import           Actor.Clerk
+import           Actor.Merchant
 import           Actor.Types
+
+type AskMerchant = MerchantId
+type BidMerchant = MerchantId
 
 type Ask = Order
 type Bid = Order
@@ -23,7 +27,7 @@ type BidId = OrderId
 
 type BookTrans = (IxSet Order -> IxSet Order)
 
-data Match = Match AskId BidId Price Quantity
+data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity
 
 data Order = Order OrderId MerchantId Price Quantity deriving (Typeable, Data)
 
@@ -71,7 +75,7 @@ postAsk' ob (PostAsk mid p q)
         let bb  = foldl (\bb' t -> t bb') (bidBook ob) trans
             ob' = ob { bidBook = bb }
 
-        {-TODO: Emit messages-}
+        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') matches
 
         case a of
             Just a'@(Order aid mid _ _) -> reply (Just aid) (ob' { askBook = insert a' (askBook ob') })
@@ -90,7 +94,7 @@ postBid' ob (PostBid mid p q)
         let ab  = foldl (\ab' t -> t ab') (askBook ob) trans
             ob' = ob { askBook = ab }
 
-        {-TODO: Emit messages-}
+        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') matches
 
         case b of
             Just b'@(Order bid mid _ _) -> reply (Just bid) (ob' { bidBook = insert b' (bidBook ob') })
@@ -121,7 +125,7 @@ matchQ :: Order -> Order -> (Maybe Order, BookTrans, Match)
 {-# INLINE matchQ #-}
 matchQ (Order fid fmid fp fq) (Order oid omid op oq) =
         case compare fq oq of
-            LT -> (Nothing                           , updateIx oid (Order oid omid op (oq - fq)), Match fid oid (med fp op) fq)
-            GT -> (Just (Order fid fmid fp (fq - oq)), deleteIx oid                              , Match fid oid (med fp op) oq)
-            EQ -> (Nothing                           , deleteIx oid                              , Match fid oid (med fp op) oq)
+            LT -> (Nothing                           , updateIx oid (Order oid omid op (oq - fq)), Match fid fmid oid omid (med fp op) fq)
+            GT -> (Just (Order fid fmid fp (fq - oq)), deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
+            EQ -> (Nothing                           , deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
     where med p0 p1 = (p0 + p1) `div` 2

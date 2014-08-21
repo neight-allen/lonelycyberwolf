@@ -1,9 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Actor.Clerk
-    ( ClerkId (..)
-
-    , PostAsk (..)
+    ( PostAsk (..)
     , PostBid (..)
     , CancelAsk (..)
     , CancelBid (..)
