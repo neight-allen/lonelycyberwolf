@@ -12,9 +12,20 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
+flag developer
+    description:    Operate in developer mode.
+    default:        False
+    manual:         True
+
 library
     hs-source-dirs:     src
     default-language:   Haskell2010
+
+    if flag(developer)
+        ghc-options:        -Werror
+        ghc-prof-options:   -auto-all
+    else
+        ghc-options:        -Wall -O2
 
     default-extensions: OverloadedStrings
                     ,   DeriveDataTypeable

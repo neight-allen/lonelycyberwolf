@@ -15,10 +15,13 @@ data Inventory = Inventory
 
 merchant :: ProcessDefinition Inventory
 merchant = ProcessDefinition
-        { apiHandlers            = []
+        { apiHandlers            = [ handleCall notifyBid' ]
         , infoHandlers           = []
         , exitHandlers           = []
         , timeoutHandler         = \s _ -> continue s
         , shutdownHandler        = \_ _ -> return ()
         , unhandledMessagePolicy = Drop
         }
+
+notifyBid' :: Inventory -> NotifyBid -> Process (ProcessReply Bool Inventory)
+notifyBid' i _ = reply True i
