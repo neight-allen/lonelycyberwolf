@@ -1,7 +1,4 @@
-module Actor.Clerk.Implementation
-    ( OrderBook (..)
-    , clerk
-    ) where
+module Actor.Clerk.Implementation where
 
 import           Control.Distributed.Process                         hiding
                                                                       (Match,
