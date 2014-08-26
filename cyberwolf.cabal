@@ -40,13 +40,18 @@ library
                     ,   Actor.Merchant.Implementation
                     ,   Actor.Types
     
-    build-depends:      base                            >=4.6   && <4.7
+    build-depends:      base                            >=4.6   && <4.8
                     ,   distributed-process             >=0.5   && <0.6
                     ,   distributed-process-platform    >=0.1   && <0.2
                     ,   binary                          >=0.7   && <0.8
                     ,   uuid                            >=1.3   && <1.4
                     ,   ixset                           >=1.0   && <1.1
                     ,   mtl                             >=2.2   && <2.3
+
+                    ,   tasty                           >=4.6   && <4.8
+                    ,   tasty-smallcheck                >=0.8   && <0.9
+                    ,   tasty-quickcheck                >=0.8   && <0.9
+                    ,   tasty-hunit                     >=0.9   && <0.10
 
 executable test
     main-is:            Main.hs
@@ -55,7 +60,7 @@ executable test
 
     ghc-options:        -threaded -with-rtsopts=-N
 
-    build-depends:      base                            >=4.6   && <4.7
+    build-depends:      base                            >=4.6   && <4.8
                     ,   tasty                           >=0.8   && <0.9
                     ,   tasty-smallcheck                >=0.8   && <0.9
                     ,   tasty-quickcheck                >=0.8   && <0.9

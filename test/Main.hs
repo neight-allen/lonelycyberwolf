@@ -2,7 +2,8 @@ module Main where
 
 import           Test.Tasty
 
-import qualified Clerk      as Clerk
+import qualified Actor.Clerk.Implementation as Clerk
+{-import qualified Actor.Clerk     as Clerk-}
 
 main :: IO ()
 main = defaultMain tests

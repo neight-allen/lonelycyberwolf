@@ -1,13 +1,21 @@
-module Actor.Clerk.Implementation where
+module Actor.Clerk.Implementation
+    ( clerk
+    , tests
+    ) where
 
 import           Control.Distributed.Process                         hiding
                                                                       (Match,
                                                                       match)
 import           Control.Distributed.Process.Platform.ManagedProcess
-import           Data.Data
+import           Data.Data                                           hiding
+                                                                      (Proxy)
 import           Data.IxSet
-import           Data.Typeable
+import           Data.Typeable                                       hiding
+                                                                      (Proxy)
 import           Data.UUID.V4
+
+import qualified Test.Tasty                                          as Test
+import qualified Test.Tasty.QuickCheck                               as QC
 
 import           Actor.Clerk
 import           Actor.Merchant
@@ -26,7 +34,7 @@ type BookTrans = (IxSet Order -> IxSet Order)
 
 data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity
 
-data Order = Order OrderId MerchantId Price Quantity deriving (Typeable, Data)
+data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
 
 instance Eq Order where
     (Order id0 _ _ _) == (Order id1 _ _ _) = id0 == id1
@@ -126,3 +134,22 @@ matchQ (Order fid fmid fp fq) (Order oid omid op oq) =
             GT -> (Just (Order fid fmid fp (fq - oq)), deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
             EQ -> (Nothing                           , deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
     where med p0 p1 = (p0 + p1) `div` 2
+
+-------------
+-- Testing --
+-------------
+
+tests :: Test.TestTree
+tests = Test.testGroup "Clerk" [testMatching]
+
+testMatching :: Test.TestTree
+testMatching = Test.testGroup "Matching"
+        [ QC.testProperty "If an ask cannot be filled, no bids above its price should remain."  prop_NoEscapedBids
+        ]
+
+prop_NoEscapedBids :: Order -> Bool
+prop_NoEscapedBids (Order oid omid p q) = p > 0
+{-prop_NoEscapedBids o = QC.forAll . QC.orderedList $ \os -> undefined-}
+
+instance QC.Arbitrary Order where
+    arbitrary = undefined
