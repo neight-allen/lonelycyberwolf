@@ -3,6 +3,7 @@ module Actor.Clerk.Implementation
     , tests
     ) where
 
+import           Control.Applicative
 import           Control.Distributed.Process                         hiding
                                                                       (Match,
                                                                       match)
@@ -148,8 +149,8 @@ testMatching = Test.testGroup "Matching"
         ]
 
 prop_NoEscapedBids :: Order -> Bool
-prop_NoEscapedBids (Order oid omid p q) = p > 0
+prop_NoEscapedBids (Order oid omid p q) = p >= 0
 {-prop_NoEscapedBids o = QC.forAll . QC.orderedList $ \os -> undefined-}
 
 instance QC.Arbitrary Order where
-    arbitrary = undefined
+    arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
