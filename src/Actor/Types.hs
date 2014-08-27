@@ -16,7 +16,6 @@ import qualified Data.ByteString                            as BS
 import           Data.Data
 import           Data.Typeable
 import           Data.UUID
-import           Data.Word
 import           GHC.Int
 import           Network.Transport
 import           System.Random
@@ -30,9 +29,9 @@ newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq
 
 --
 
-newtype OrderId  = OrderId  { unOrderId :: UUID }    deriving (Eq, Ord, Typeable, Data, Binary, Show)
-newtype Price    = Price    { unPrice :: Word64 }    deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary)
-newtype Quantity = Quantity { unQuantity :: Word64 } deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary)
+newtype OrderId  = OrderId  { unOrderId :: UUID }   deriving (Eq, Ord, Typeable, Data, Binary, Show, Random)
+newtype Price    = Price    { unPrice :: Int64 }    deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary, Bounded, Random)
+newtype Quantity = Quantity { unQuantity :: Int64 } deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary, Bounded, Random)
 
 --
 
@@ -46,7 +45,7 @@ instance Arbitrary NodeId where
     arbitrary = NodeId <$> arbitrary
 
 instance Arbitrary EndPointAddress where
-    arbitrary = EndPointAddress . BS.pack <$> arbitrary
+    arbitrary = EndPointAddress . BS.pack <$> vector 4
 
 instance Arbitrary LocalProcessId where
     arbitrary = LocalProcessId <$> arbitrary <*> arbitrary

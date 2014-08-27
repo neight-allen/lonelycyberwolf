@@ -148,15 +148,45 @@ tests = Test.testGroup "Clerk" [testMatching]
 
 testMatching :: Test.TestTree
 testMatching = Test.testGroup "Matching"
-        [ QC.testProperty "If an ask cannot be filled, no bids above its price should remain."  prop_NoEscapedBids
+        [ QC.testProperty "If an ask cannot be filled, it should have a remaining quantity."    prop_NoEmptyAsk
+        , QC.testProperty "If an ask cannot be filled, no bids above its price should remain."  prop_NoEscapedBids
+        {-, QC.testProperty "If a bid cannot be filled, it should have a remaining quantity."     prop_NoEmptyBid-}
+        {-, QC.testProperty "If a bid cannot be filled, no asks below its price should remain."   prop_NoEscapedAsks-}
         ]
+
+prop_NoEmptyAsk :: Order -> QC.Property
+prop_NoEmptyAsk o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>
+        let (mo, bt, ms) = match o os
+         in case mo of
+                Just (Order _ _ _ q) -> q > 0
+                Nothing              -> True
+
 
 prop_NoEscapedBids :: Order -> QC.Property
 prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->
-         let (mo, bt, ms) = match o os
-          in case mo of
-                Just (Order oid omid p q) -> True
-                Nothing                   -> False
+        let (mo, bt, ms) = match o os
+         in case mo of
+                Just (Order oid omid p q) -> False
+                Nothing                   -> True
+
+prop_NoEmptyBid :: Order -> QC.Property
+prop_NoEmptyBid = undefined
+{-prop_NoEmptyBid o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
+
+
+prop_NoEscapedAsks = undefined
 
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
+
+genPriceAbove :: Price -> QC.Gen Order
+genPriceAbove l = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.choose (l, maxBound) <*> QC.arbitrary
+
+genPriceBelow :: Price -> QC.Gen Order
+genPriceBelow h = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.choose (minBound, h) <*> QC.arbitrary
+
+instance QC.Arbitrary OrderBook where
+    arbitrary = do split <- QC.arbitrary
+                   asks  <- QC.listOf $ genPriceAbove split
+                   bids  <- QC.listOf $ genPriceBelow split
+                   return $ OrderBook (fromList asks) (fromList bids)
