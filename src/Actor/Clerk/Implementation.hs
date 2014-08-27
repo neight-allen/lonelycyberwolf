@@ -33,7 +33,10 @@ type BidId = OrderId
 
 type BookTrans = (IxSet Order -> IxSet Order)
 
-data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity
+data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq)
+
+instance Ord Match where
+    compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
 
 data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
 
@@ -148,9 +151,12 @@ testMatching = Test.testGroup "Matching"
         [ QC.testProperty "If an ask cannot be filled, no bids above its price should remain."  prop_NoEscapedBids
         ]
 
-prop_NoEscapedBids :: Order -> Bool
-prop_NoEscapedBids (Order oid omid p q) = p >= 0
-{-prop_NoEscapedBids o = QC.forAll . QC.orderedList $ \os -> undefined-}
+prop_NoEscapedBids :: Order -> QC.Property
+prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->
+         let (mo, bt, ms) = match o os
+          in case mo of
+                Just (Order oid omid p q) -> True
+                Nothing                   -> False
 
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
