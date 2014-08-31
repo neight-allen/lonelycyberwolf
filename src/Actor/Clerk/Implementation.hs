@@ -57,7 +57,7 @@ instance Indexable Order where
 data OrderBook = OrderBook
         { askBook :: !(IxSet Order)
         , bidBook :: !(IxSet Order)
-        }
+        } deriving (Show)
 
 ----
 
@@ -170,39 +170,39 @@ testMatching = Test.testGroup "Matching"
         , QC.testProperty "If a bid cannot be filled, no asks below its price should remain."   prop_NoEscapedAsks
         ]
 
-prop_NoEmptyAsk :: Order -> QC.Property
-prop_NoEmptyAsk o = undefined
+prop_NoEmptyAsk :: Ask -> OrderBook -> Bool
+prop_NoEmptyAsk a@(Order _ _ ap _) ob = let (ma', (_, _)) = runState (matchAsk' a bids) (ob, [])
+                                         in case ma' of
+                                                Just (Order _ _ _ aq') -> aq' > 0
+                                                Nothing                -> True
+    where bids = takeWhile (\(Order _ _ bp _) -> ap < bp) $
+                    toDescList (Proxy :: Proxy Price) (bidBook ob)
 
-prop_NoEscapedBids :: Order -> QC.Property
-prop_NoEscapedBids = undefined
+prop_NoEscapedBids :: Ask -> OrderBook -> Bool
+prop_NoEscapedBids a@(Order aid _ _ _) ob = case (as, bs) of
+                                                (                 [],                  _) -> True
+                                                (                  _,                 []) -> True
+                                                ([(Order _ _ ap' _)], [(Order _ _ bp _)]) -> ap' > bp
+    where ob' = fst $ matchAsk a ob
+          as  = toList $ (askBook ob') @= aid
+          bs  = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob')
 
-prop_NoEmptyBid :: Order -> QC.Property
-prop_NoEmptyBid o = undefined
+prop_NoEmptyBid :: Bid -> OrderBook -> Bool
+prop_NoEmptyBid b@(Order _ _ bp _) ob = let (mb', (_,_)) = runState (matchBid' b asks) (ob, [])
+                                         in case mb' of
+                                                Just (Order _ _ _ bq') -> bq' > 0
+                                                Nothing                -> True
+    where asks = takeWhile (\(Order _ _ ap _) -> ap < bp) $
+                    toAscList (Proxy :: Proxy Price) (askBook ob)
 
-prop_NoEscapedAsks :: Order -> QC.Property
-prop_NoEscapedAsks o = undefined
-
-{-prop_NoEmptyAsk :: Order -> QC.Property-}
-{-prop_NoEmptyAsk o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
-        {-let (mo, bt, ms) = match o os-}
-         {-in case mo of-}
-                {-Just (Order _ _ _ q) -> q > 0-}
-                {-Nothing              -> True-}
-
-
-{-prop_NoEscapedBids :: Order -> QC.Property-}
-{-prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->-}
-        {-let (mo, bt, ms) = match o os-}
-         {-in case mo of-}
-                {-Just (Order oid omid p q) -> False-}
-                {-Nothing                   -> True-}
-
-{-prop_NoEmptyBid :: Order -> QC.Property-}
-{-prop_NoEmptyBid = undefined-}
-{-prop_NoEmptyBid o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
-
-
-{-prop_NoEscapedAsks = undefined-}
+prop_NoEscapedAsks :: Order -> OrderBook -> Bool
+prop_NoEscapedAsks b@(Order bid _ _ _) ob = case (as, bs) of
+                                                (                [],                   _) -> True
+                                                (                 _,                  []) -> True
+                                                ([(Order _ _ ap _)], [(Order _ _ bp' _)]) -> ap > bp'
+    where ob' = fst $ matchBid b ob
+          as  = take 1 $ toAscList (Proxy :: Proxy Price) (askBook ob')
+          bs  = toList $ (bidBook ob') @= bid
 
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
