@@ -195,8 +195,14 @@ prop_NoEmptyBid b@(Order _ _ bp _) ob = let (mb', (_,_)) = runState (matchBid' b
     where asks = takeWhile (\(Order _ _ ap _) -> ap < bp) $
                     toAscList (Proxy :: Proxy Price) (askBook ob)
 
-prop_NoEscapedAsks :: Order -> QC.Property
-prop_NoEscapedAsks o = undefined
+prop_NoEscapedAsks :: Order -> OrderBook -> Bool
+prop_NoEscapedAsks b@(Order bid _ _ _) ob = case (as, bs) of
+                                                (                [],                   _) -> True
+                                                (                 _,                  []) -> True
+                                                ([(Order _ _ ap _)], [(Order _ _ bp' _)]) -> ap > bp'
+    where ob' = fst $ matchBid b ob
+          as  = take 1 $ toAscList (Proxy :: Proxy Price) (askBook ob')
+          bs  = toList $ (bidBook ob') @= bid
 
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
