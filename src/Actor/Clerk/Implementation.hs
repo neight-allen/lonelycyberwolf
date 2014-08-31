@@ -8,6 +8,7 @@ import           Control.Distributed.Process                         hiding
                                                                       (Match,
                                                                       match)
 import           Control.Distributed.Process.Platform.ManagedProcess
+import           Control.Monad.State
 import           Data.Data                                           hiding
                                                                       (Proxy)
 import           Data.IxSet
@@ -32,6 +33,8 @@ type AskId = OrderId
 type BidId = OrderId
 
 type BookTrans = (IxSet Order -> IxSet Order)
+
+type MatchT = State (OrderBook, [Match]) (Maybe Order)
 
 data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq)
 
@@ -75,39 +78,21 @@ clerk = ProcessDefinition
 postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply (Maybe OrderId) OrderBook)
 postAsk' ob (PostAsk mid p q)
     | p > 0 && q > 0 = do
-        oid <- liftIO nextRandom
-
-        let (a, trans, matches) = match (Order (OrderId oid) mid p q) $
-                                    takeWhile (\(Order _ _ bp _) -> bp > p) $
-                                        toDescList (Proxy :: Proxy Price) (bidBook ob)
-
-        let bb  = foldl (\bb' t -> t bb') (bidBook ob) trans
-            ob' = ob { bidBook = bb }
-
-        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') matches
-
-        case a of
-            Just a'@(Order aid mid _ _) -> reply (Just aid) (ob' { askBook = insert a' (askBook ob') })
-            Nothing                     -> reply Nothing    ob'
+        uuid <- liftIO nextRandom
+        let oid       = OrderId uuid
+            (ob', ms) = matchAsk (Order oid mid p q) ob
+        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') ms
+        reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 
 postBid' :: OrderBook -> PostBid -> Process (ProcessReply (Maybe OrderId) OrderBook)
 postBid' ob (PostBid mid p q)
     | p > 0 && q > 0 = do
-        oid <- liftIO nextRandom
-
-        let (b, trans, matches) = match (Order (OrderId oid) mid p q) $
-                                    takeWhile (\(Order _ _ ap _) -> ap < p) $
-                                        toAscList (Proxy :: Proxy Price) (askBook ob)
-
-        let ab  = foldl (\ab' t -> t ab') (askBook ob) trans
-            ob' = ob { askBook = ab }
-
-        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') matches
-
-        case b of
-            Just b'@(Order bid mid _ _) -> reply (Just bid) (ob' { bidBook = insert b' (bidBook ob') })
-            Nothing                     -> reply Nothing ob'
+        uuid <- liftIO nextRandom
+        let oid       = OrderId uuid
+            (ob', ms) = matchBid (Order oid mid p q) ob
+        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') ms
+        reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 
 cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
@@ -120,23 +105,54 @@ cancelBid' ob (CancelBid oid) = reply False (ob { bidBook = deleteIx oid (bidBoo
 -- Utilities --
 ---------------
 
-match :: Order -> [Order] -> (Maybe Order, [BookTrans], [Match])
-match f os = match' os (Just f, [], [])
+-- Ask --
 
-match' :: [Order] -> (Maybe Order, [BookTrans], [Match]) -> (Maybe Order, [BookTrans], [Match])
-{-# INLINE match' #-}
-match' _      (Nothing, ts, ms) = (Nothing, ts, ms)
-match' []     e                 = e
-match' (o:os) (Just  f, ts, ms) = let (f', t, m) = matchQ f o
-                                   in match' os (f', t:ts, m:ms)
+matchAsk :: Ask -> OrderBook -> (OrderBook, [Match])
+matchAsk a@(Order _ _ ap _) ob = let (ma', (ob', ms)) = runState (matchAsk' a bids) (ob, [])
+                                  in case ma' of
+                                        Just a' -> (ob' { askBook = insert a' (askBook ob') }, ms)
+                                        Nothing -> (ob', ms)
+    where bids = takeWhile (\(Order _ _ bp _) -> ap < bp) $
+                    toDescList (Proxy :: Proxy Price) (bidBook ob)
 
-matchQ :: Order -> Order -> (Maybe Order, BookTrans, Match)
-{-# INLINE matchQ #-}
-matchQ (Order fid fmid fp fq) (Order oid omid op oq) =
-        case compare fq oq of
-            LT -> (Nothing                           , updateIx oid (Order oid omid op (oq - fq)), Match fid fmid oid omid (med fp op) fq)
-            GT -> (Just (Order fid fmid fp (fq - oq)), deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
-            EQ -> (Nothing                           , deleteIx oid                              , Match fid fmid oid omid (med fp op) oq)
+matchAsk' :: Ask -> [Bid] -> MatchT
+matchAsk' a                                         [] = return $ Just a
+matchAsk' a@(Order _ _ ap _) (b@(Order bid _ bp _):bs) =
+        let (ma', mb', m) = fill a b
+         in case mb' of
+                Just b' -> get >>= (\(ob, ms) -> put (ob { bidBook = updateIx bid b' (bidBook ob) }, m:ms)) >> handleAsk ma'
+                Nothing -> get >>= (\(ob, ms) -> put (ob { bidBook = deleteIx bid (bidBook ob) }, m:ms)) >> handleAsk ma'
+    where handleAsk ma' = case ma' of Just a' -> matchAsk' a' bs
+                                      Nothing -> return Nothing
+
+-- Bid --
+
+matchBid :: Bid -> OrderBook -> (OrderBook, [Match])
+matchBid b@(Order _ _ bp _) ob = let (mb', (ob', ms)) = runState (matchBid' b asks) (ob, [])
+                                  in case mb' of
+                                        Just b' -> (ob' { bidBook = insert b' (bidBook ob') }, ms)
+                                        Nothing -> (ob', ms)
+    where asks = takeWhile (\(Order _ _ ap _) -> ap < bp) $
+                    toAscList (Proxy :: Proxy Price) (askBook ob)
+
+matchBid' :: Bid -> [Ask] -> MatchT
+matchBid' b                                         [] = return $ Just b
+matchBid' b@(Order _ _ bp _) (a@(Order aid _ ap _):as) =
+        let (ma', mb', m) = fill a b
+         in case ma' of
+                Just a' -> get >>= (\(ob, ms) -> put (ob { askBook = updateIx aid a' (askBook ob) }, m:ms)) >> handleBid mb'
+                Nothing -> get >>= (\(ob, ms) -> put (ob { askBook = deleteIx aid (askBook ob) }, m:ms)) >> handleBid mb'
+    where handleBid mb' = case mb' of Just b' -> matchBid' b' as
+                                      Nothing -> return Nothing
+
+-- Util --
+
+fill :: Ask -> Bid -> (Maybe Ask, Maybe Bid, Match)
+fill (Order aid amid ap aq) (Order bid bmid bp bq) =
+        case compare aq bq of
+            LT -> (                           Nothing, Just (Order bid bmid bp (bq - aq)), Match aid amid bid bmid (med ap bp) aq)
+            EQ -> (                           Nothing,                            Nothing, Match aid amid bid bmid (med ap bp) bq)
+            GT -> (Just (Order aid amid ap (aq - bq)),                            Nothing, Match aid amid bid bmid (med ap bp) bq)
     where med p0 p1 = (p0 + p1) `div` 2
 
 -------------
@@ -150,31 +166,43 @@ testMatching :: Test.TestTree
 testMatching = Test.testGroup "Matching"
         [ QC.testProperty "If an ask cannot be filled, it should have a remaining quantity."    prop_NoEmptyAsk
         , QC.testProperty "If an ask cannot be filled, no bids above its price should remain."  prop_NoEscapedBids
-        {-, QC.testProperty "If a bid cannot be filled, it should have a remaining quantity."     prop_NoEmptyBid-}
-        {-, QC.testProperty "If a bid cannot be filled, no asks below its price should remain."   prop_NoEscapedAsks-}
+        , QC.testProperty "If a bid cannot be filled, it should have a remaining quantity."     prop_NoEmptyBid
+        , QC.testProperty "If a bid cannot be filled, no asks below its price should remain."   prop_NoEscapedAsks
         ]
 
 prop_NoEmptyAsk :: Order -> QC.Property
-prop_NoEmptyAsk o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>
-        let (mo, bt, ms) = match o os
-         in case mo of
-                Just (Order _ _ _ q) -> q > 0
-                Nothing              -> True
-
+prop_NoEmptyAsk o = undefined
 
 prop_NoEscapedBids :: Order -> QC.Property
-prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->
-        let (mo, bt, ms) = match o os
-         in case mo of
-                Just (Order oid omid p q) -> False
-                Nothing                   -> True
+prop_NoEscapedBids = undefined
 
 prop_NoEmptyBid :: Order -> QC.Property
-prop_NoEmptyBid = undefined
+prop_NoEmptyBid o = undefined
+
+prop_NoEscapedAsks :: Order -> QC.Property
+prop_NoEscapedAsks o = undefined
+
+{-prop_NoEmptyAsk :: Order -> QC.Property-}
+{-prop_NoEmptyAsk o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
+        {-let (mo, bt, ms) = match o os-}
+         {-in case mo of-}
+                {-Just (Order _ _ _ q) -> q > 0-}
+                {-Nothing              -> True-}
+
+
+{-prop_NoEscapedBids :: Order -> QC.Property-}
+{-prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->-}
+        {-let (mo, bt, ms) = match o os-}
+         {-in case mo of-}
+                {-Just (Order oid omid p q) -> False-}
+                {-Nothing                   -> True-}
+
+{-prop_NoEmptyBid :: Order -> QC.Property-}
+{-prop_NoEmptyBid = undefined-}
 {-prop_NoEmptyBid o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
 
 
-prop_NoEscapedAsks = undefined
+{-prop_NoEscapedAsks = undefined-}
 
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
