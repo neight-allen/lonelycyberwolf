@@ -192,28 +192,6 @@ prop_NoEmptyBid b@(Order _ _ bp _) ob = let (mb', (_,_)) = runState (matchBid' b
 prop_NoEscapedAsks :: Order -> QC.Property
 prop_NoEscapedAsks o = undefined
 
-{-prop_NoEmptyAsk :: Order -> QC.Property-}
-{-prop_NoEmptyAsk o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
-        {-let (mo, bt, ms) = match o os-}
-         {-in case mo of-}
-                {-Just (Order _ _ _ q) -> q > 0-}
-                {-Nothing              -> True-}
-
-
-{-prop_NoEscapedBids :: Order -> QC.Property-}
-{-prop_NoEscapedBids o = QC.forAll QC.orderedList $ \os ->-}
-        {-let (mo, bt, ms) = match o os-}
-         {-in case mo of-}
-                {-Just (Order oid omid p q) -> False-}
-                {-Nothing                   -> True-}
-
-{-prop_NoEmptyBid :: Order -> QC.Property-}
-{-prop_NoEmptyBid = undefined-}
-{-prop_NoEmptyBid o@(Order _ _ _ q) = QC.forAll QC.orderedList $ \os -> q > 0 QC.==>-}
-
-
-{-prop_NoEscapedAsks = undefined-}
-
 instance QC.Arbitrary Order where
     arbitrary = Order <$> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary <*> QC.arbitrary
 
