@@ -30,8 +30,16 @@ newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq
 --
 
 newtype OrderId  = OrderId  { unOrderId :: UUID }   deriving (Eq, Ord, Typeable, Data, Binary, Show, Random)
-newtype Price    = Price    { unPrice :: Int64 }    deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary, Bounded, Random)
-newtype Quantity = Quantity { unQuantity :: Int64 } deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Arbitrary, Bounded, Random)
+newtype Price    = Price    { unPrice :: Int64 }    deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Random)
+newtype Quantity = Quantity { unQuantity :: Int64 } deriving (Eq, Ord, Num, Real, Integral, Enum, Typeable, Data, Binary, Show, Random)
+
+instance Bounded Price where
+    minBound = 0
+    maxBound = Price maxBound
+
+instance Bounded Quantity where
+    minBound = 0
+    maxBound = Quantity maxBound
 
 --
 
@@ -49,3 +57,9 @@ instance Arbitrary EndPointAddress where
 
 instance Arbitrary LocalProcessId where
     arbitrary = LocalProcessId <$> arbitrary <*> arbitrary
+
+instance Arbitrary Price where
+    arbitrary = choose (1, maxBound)
+
+instance Arbitrary Quantity where
+    arbitrary = choose (1, maxBound)

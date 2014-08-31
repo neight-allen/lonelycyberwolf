@@ -57,7 +57,7 @@ instance Indexable Order where
 data OrderBook = OrderBook
         { askBook :: !(IxSet Order)
         , bidBook :: !(IxSet Order)
-        }
+        } deriving (Show)
 
 ----
 
@@ -170,8 +170,13 @@ testMatching = Test.testGroup "Matching"
         , QC.testProperty "If a bid cannot be filled, no asks below its price should remain."   prop_NoEscapedAsks
         ]
 
-prop_NoEmptyAsk :: Order -> QC.Property
-prop_NoEmptyAsk o = undefined
+prop_NoEmptyAsk :: Ask -> OrderBook -> Bool
+prop_NoEmptyAsk a@(Order _ _ ap _) ob = let (ma', (_, _)) = runState (matchAsk' a bids) (ob, [])
+                                         in case ma' of
+                                                Just (Order _ _ _ aq') -> aq' > 0
+                                                Nothing                -> True
+    where bids = takeWhile (\(Order _ _ bp _) -> ap < bp) $
+                    toDescList (Proxy :: Proxy Price) (bidBook ob)
 
 prop_NoEscapedBids :: Order -> QC.Property
 prop_NoEscapedBids = undefined
