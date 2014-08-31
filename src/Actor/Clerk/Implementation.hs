@@ -178,8 +178,14 @@ prop_NoEmptyAsk a@(Order _ _ ap _) ob = let (ma', (_, _)) = runState (matchAsk' 
     where bids = takeWhile (\(Order _ _ bp _) -> ap < bp) $
                     toDescList (Proxy :: Proxy Price) (bidBook ob)
 
-prop_NoEscapedBids :: Order -> QC.Property
-prop_NoEscapedBids = undefined
+prop_NoEscapedBids :: Ask -> OrderBook -> Bool
+prop_NoEscapedBids a@(Order aid _ _ _) ob = case (as, bs) of
+                                                (                 [],                  _) -> True
+                                                (                  _,                 []) -> True
+                                                ([(Order _ _ ap' _)], [(Order _ _ bp _)]) -> ap' > bp
+    where ob' = fst $ matchAsk a ob
+          as  = toList $ (askBook ob') @= aid
+          bs  = take 1 $ toDescList (Proxy :: Proxy Price) (bidBook ob')
 
 prop_NoEmptyBid :: Bid -> OrderBook -> Bool
 prop_NoEmptyBid b@(Order _ _ bp _) ob = let (mb', (_,_)) = runState (matchBid' b asks) (ob, [])
