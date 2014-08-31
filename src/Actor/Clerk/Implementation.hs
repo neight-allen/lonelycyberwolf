@@ -108,6 +108,7 @@ cancelBid' ob (CancelBid oid) = reply False (ob { bidBook = deleteIx oid (bidBoo
 -- Ask --
 
 matchAsk :: Ask -> OrderBook -> (OrderBook, [Match])
+{-# INLINABLE matchAsk #-}
 matchAsk a@(Order _ _ ap _) ob = let (ma', (ob', ms)) = runState (matchAsk' a bids) (ob, [])
                                   in case ma' of
                                         Just a' -> (ob' { askBook = insert a' (askBook ob') }, ms)
@@ -116,6 +117,7 @@ matchAsk a@(Order _ _ ap _) ob = let (ma', (ob', ms)) = runState (matchAsk' a bi
                     toDescList (Proxy :: Proxy Price) (bidBook ob)
 
 matchAsk' :: Ask -> [Bid] -> MatchT
+{-# INLINE matchAsk' #-}
 matchAsk' a                                         [] = return $ Just a
 matchAsk' a@(Order _ _ ap _) (b@(Order bid _ bp _):bs) =
         let (ma', mb', m) = fill a b
@@ -128,6 +130,7 @@ matchAsk' a@(Order _ _ ap _) (b@(Order bid _ bp _):bs) =
 -- Bid --
 
 matchBid :: Bid -> OrderBook -> (OrderBook, [Match])
+{-# INLINABLE matchBid #-}
 matchBid b@(Order _ _ bp _) ob = let (mb', (ob', ms)) = runState (matchBid' b asks) (ob, [])
                                   in case mb' of
                                         Just b' -> (ob' { bidBook = insert b' (bidBook ob') }, ms)
@@ -136,6 +139,7 @@ matchBid b@(Order _ _ bp _) ob = let (mb', (ob', ms)) = runState (matchBid' b as
                     toAscList (Proxy :: Proxy Price) (askBook ob)
 
 matchBid' :: Bid -> [Ask] -> MatchT
+{-# INLINE matchBid' #-}
 matchBid' b                                         [] = return $ Just b
 matchBid' b@(Order _ _ bp _) (a@(Order aid _ ap _):as) =
         let (ma', mb', m) = fill a b
@@ -148,6 +152,7 @@ matchBid' b@(Order _ _ bp _) (a@(Order aid _ ap _):as) =
 -- Util --
 
 fill :: Ask -> Bid -> (Maybe Ask, Maybe Bid, Match)
+{-# INLINE fill #-}
 fill (Order aid amid ap aq) (Order bid bmid bp bq) =
         case compare aq bq of
             LT -> (                           Nothing, Just (Order bid bmid bp (bq - aq)), Match aid amid bid bmid (med ap bp) aq)
