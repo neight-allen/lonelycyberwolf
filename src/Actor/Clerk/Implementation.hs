@@ -41,19 +41,6 @@ data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (
 instance Ord Match where
     compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
 
-data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
-
-instance Eq Order where
-    (Order id0 _ _ _) == (Order id1 _ _ _) = id0 == id1
-
-instance Ord Order where
-    compare (Order _ _ p0 _) (Order _ _ p1 _) = compare p0 p1
-
-instance Indexable Order where
-    empty = ixSet [ ixGen (Proxy :: Proxy OrderId)
-                  , ixGen (Proxy :: Proxy Price)
-                  ]
-
 data OrderBook = OrderBook
         { askBook :: !(IxSet Order)
         , bidBook :: !(IxSet Order)
@@ -81,7 +68,7 @@ postAsk' ob (PostAsk mid p q)
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchAsk (Order oid mid p q) ob
-        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') ms
+        mapM_ (\(Match aid am bid bm p' q') -> notifyBid am aid bm bid p' q') ms
         reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 
@@ -91,7 +78,7 @@ postBid' ob (PostBid mid p q)
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchBid (Order oid mid p q) ob
-        mapM_ (\(Match _ am bid bm p' q') -> notifyBid am bm bid p' q') ms
+        mapM_ (\(Match aid am bid bm p' q') -> notifyBid am aid bm bid p' q') ms
         reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 
