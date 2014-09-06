@@ -5,7 +5,8 @@ module Actor.Merchant.Implementation
     , merchant
     ) where
 
-import           Control.Distributed.Process
+import           Control.Distributed.Process                         hiding
+                                                                      (Match)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Data
 import           Data.IxSet
@@ -41,7 +42,9 @@ data Merchant = Merchant
 
 merchant :: ProcessDefinition Merchant
 merchant = ProcessDefinition
-        { apiHandlers            = [ handleCall notifyBid' ]
+        { apiHandlers            = [ handleCall notifyAsk'
+                                   , handleCall notifyBid'
+                                   ]
         , infoHandlers           = []
         , exitHandlers           = []
         , timeoutHandler         = \s _ -> continue s
@@ -49,9 +52,8 @@ merchant = ProcessDefinition
         , unhandledMessagePolicy = Drop
         }
 
-notifyBid' :: Merchant -> NotifyBid -> Process (ProcessReply () Merchant)
-notifyBid' m@Merchant{..} (NotifyBid aid mid bid p q) = do
+notifyAsk' :: Merchant -> Match -> Process (ProcessReply () Merchant)
+notifyAsk' = undefined
 
-        noReply_ m
-
-{-notifyBid' i _ = reply True i-}
+notifyBid' :: Merchant -> Match -> Process (ProcessReply () Merchant)
+notifyBid' = undefined

@@ -23,28 +23,9 @@ import           Actor.Clerk
 import           Actor.Merchant
 import           Actor.Types
 
-type AskMerchant = MerchantId
-type BidMerchant = MerchantId
-
-type Ask = Order
-type Bid = Order
-
-type AskId = OrderId
-type BidId = OrderId
-
 type BookTrans = (IxSet Order -> IxSet Order)
 
 type MatchT = State (OrderBook, [Match]) (Maybe Order)
-
-data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq)
-
-instance Ord Match where
-    compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
-
-data OrderBook = OrderBook
-        { askBook :: !(IxSet Order)
-        , bidBook :: !(IxSet Order)
-        } deriving (Show)
 
 ----
 
@@ -68,7 +49,7 @@ postAsk' ob (PostAsk mid p q)
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchAsk (Order oid mid p q) ob
-        mapM_ (\(Match aid am bid bm p' q') -> notifyBid am aid bm bid p' q') ms
+        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am m >> notifyBid bm m) ms
         reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 
@@ -78,7 +59,7 @@ postBid' ob (PostBid mid p q)
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchBid (Order oid mid p q) ob
-        mapM_ (\(Match aid am bid bm p' q') -> notifyBid am aid bm bid p' q') ms
+        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am m >> notifyBid bm m) ms
         reply (Just oid) ob'
     | otherwise      = reply Nothing ob
 

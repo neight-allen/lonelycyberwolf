@@ -9,7 +9,8 @@ module Actor.Escrow
     ) where
 
 import           Control.Distributed.Process                         hiding
-                                                                      (call)
+                                                                      (Match,
+                                                                      call)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Binary
 import           Data.Data
@@ -18,16 +19,16 @@ import           GHC.Generics
 
 import           Actor.Types
 
-data CommitAsk = CommitAsk deriving (Typeable, Generic)
+data CommitAsk = CommitAsk Match deriving (Typeable, Generic)
 instance Binary CommitAsk
 
-data CommitBid = CommitBid deriving (Typeable, Generic)
+data CommitBid = CommitBid Match deriving (Typeable, Generic)
 instance Binary CommitBid
 
 ----
 
-commitAsk :: EscrowId -> Process ()
-commitAsk EscrowId{..} = call unEscrowId $ CommitAsk
+commitAsk :: EscrowId -> Match -> Process ()
+commitAsk EscrowId{..} m = call unEscrowId $ CommitAsk m
 
-commitBid :: EscrowId -> Process ()
-commitBid EscrowId{..} = call unEscrowId $ CommitBid
+commitBid :: EscrowId -> Match -> Process ()
+commitBid EscrowId{..} m = call unEscrowId $ CommitBid m

@@ -1,13 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Actor.Merchant
-    ( NotifyBid (..)
+    ( NotifyAsk (..)
+    , NotifyBid (..)
 
+    , notifyAsk
     , notifyBid
     ) where
 
 import           Control.Distributed.Process                         hiding
-                                                                      (call)
+                                                                      (Match,
+                                                                      call)
 import           Control.Distributed.Process.Platform.ManagedProcess
 import           Data.Binary                                         (Binary)
 import           Data.Data
@@ -16,13 +19,16 @@ import           GHC.Generics
 
 import           Actor.Types
 
-type AskId = OrderId
-type BidId = OrderId
+data NotifyAsk = NotifyAsk Match deriving (Typeable, Generic)
+instance Binary NotifyAsk
 
-data NotifyBid = NotifyBid AskId MerchantId BidId Price Quantity deriving (Typeable, Generic)
+data NotifyBid = NotifyBid Match deriving (Typeable, Generic)
 instance Binary NotifyBid
 
 ----
 
-notifyBid :: MerchantId -> AskId -> MerchantId -> BidId -> Price -> Quantity -> Process ()
-notifyBid MerchantId{..} aid mid bid p q = call unMerchantId $ NotifyBid aid mid bid p q
+notifyAsk :: MerchantId -> Match -> Process ()
+notifyAsk MerchantId{..} m = call unMerchantId $ NotifyAsk m
+
+notifyBid :: MerchantId -> Match -> Process ()
+notifyBid MerchantId{..} m = call unMerchantId $ NotifyBid m

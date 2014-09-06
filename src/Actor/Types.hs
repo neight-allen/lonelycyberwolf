@@ -1,7 +1,7 @@
 module Actor.Types where
 
 import           Control.Applicative
-import           Control.Distributed.Process
+import           Control.Distributed.Process                hiding (Match)
 import           Control.Distributed.Process.Internal.Types
 import           Data.Binary                                (Binary)
 import qualified Data.ByteString                            as BS
@@ -16,7 +16,7 @@ import           Network.Transport
 import           System.Random
 import           Test.Tasty.QuickCheck
 
--- Process Types --
+--
 
 newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
 
@@ -40,6 +40,8 @@ instance Bounded Quantity where
     minBound = 0
     maxBound = Quantity maxBound
 
+--
+
 data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
 
 instance Eq Order where
@@ -52,6 +54,29 @@ instance Indexable Order where
     empty = ixSet [ ixGen (Proxy :: Proxy OrderId)
                   , ixGen (Proxy :: Proxy Price)
                   ]
+
+data OrderBook = OrderBook
+        { askBook :: !(IxSet Order)
+        , bidBook :: !(IxSet Order)
+        } deriving (Show)
+
+--
+
+type AskId = OrderId
+type BidId = OrderId
+
+type AskMerchant = MerchantId
+type BidMerchant = MerchantId
+
+type Ask = Order
+type Bid = Order
+
+data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq, Generic, Typeable)
+
+instance Ord Match where
+    compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
+
+instance Binary Match
 
 --
 
