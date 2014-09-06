@@ -19,8 +19,12 @@ import           Test.Tasty.QuickCheck
 -- Process Types --
 
 newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+
 newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+
 newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+
+newtype EscrowId    = EscrowId      { unEscrowId :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
 
 --
 
