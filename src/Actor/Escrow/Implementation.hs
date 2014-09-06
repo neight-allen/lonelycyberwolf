@@ -1,5 +1,6 @@
 module Actor.Escrow.Implementation
-    ( escrow
+    ( Holding (..)
+    , escrow
     ) where
 
 import           Control.Distributed.Process
