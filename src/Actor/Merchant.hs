@@ -16,12 +16,13 @@ import           GHC.Generics
 
 import           Actor.Types
 
+type AskId = OrderId
 type BidId = OrderId
 
-data NotifyBid = NotifyBid MerchantId BidId Price Quantity deriving (Typeable, Generic)
+data NotifyBid = NotifyBid AskId MerchantId BidId Price Quantity deriving (Typeable, Generic)
 instance Binary NotifyBid
 
 ----
 
-notifyBid :: MerchantId -> MerchantId -> BidId -> Price -> Quantity -> Process ()
-notifyBid MerchantId{..} m oid p q = call unMerchantId $ NotifyBid m oid p q
+notifyBid :: MerchantId -> AskId -> MerchantId -> BidId -> Price -> Quantity -> Process ()
+notifyBid MerchantId{..} aid mid bid p q = call unMerchantId $ NotifyBid aid mid bid p q
