@@ -5,8 +5,10 @@ module Actor.Merchant.Implementation
     , merchant
     ) where
 
-import           Control.Distributed.Process
+import           Control.Distributed.Process                         hiding
+                                                                      (Match)
 import           Control.Distributed.Process.Platform.ManagedProcess
+import           Control.Distributed.Process.Platform.Time
 import           Data.Data
 import           Data.IxSet
 import           Data.Set
@@ -16,8 +18,13 @@ import           Data.UUID
 import           Data.UUID.V4
 import           GHC.Generics
 
+import           Actor.Clerk
+import           Actor.Escrow
 import           Actor.Merchant
 import           Actor.Types
+
+-- This is dirty, fix this
+import           Actor.Escrow.Implementation
 
 data CommodityReal = CommodityReal CommodityId Quantity deriving (Typeable, Data, Generic, Show)
 
@@ -41,7 +48,10 @@ data Merchant = Merchant
 
 merchant :: ProcessDefinition Merchant
 merchant = ProcessDefinition
-        { apiHandlers            = [ handleCall notifyBid' ]
+        { apiHandlers            = [ handleCall notifyAsk'
+                                   , handleCall notifyBid'
+                                   , handleCall notifyEscrow'
+                                   ]
         , infoHandlers           = []
         , exitHandlers           = []
         , timeoutHandler         = \s _ -> continue s
@@ -49,9 +59,20 @@ merchant = ProcessDefinition
         , unhandledMessagePolicy = Drop
         }
 
+{- Bidding Merchant waits for an escrow to come in from the Asker -}
+notifyAsk' :: Merchant -> NotifyAsk -> Process (ProcessReply () Merchant)
+notifyAsk' s (NotifyAsk m) = do
+        noReply_ s
+
+{- Asking Merchant creates the escrow, and passes the id to the bidder -}
 notifyBid' :: Merchant -> NotifyBid -> Process (ProcessReply () Merchant)
-notifyBid' m@Merchant{..} (NotifyBid aid mid bid p q) = do
+notifyBid' s (NotifyBid m@(Match aid amid bid bmid p q)) = do
+        pid <- spawnLocal $ serve Holding init escrow
+        let eid = EscrowId pid
+        notifyEscrow bmid bid eid
+        commitAsk eid m
+        noReply_ s
+    where init h = return $ InitOk h Infinity
 
-        noReply_ m
-
-{-notifyBid' i _ = reply True i-}
+notifyEscrow' :: Merchant -> NotifyEscrow -> Process (ProcessReply () Merchant)
+notifyEscrow' = undefined

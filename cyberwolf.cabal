@@ -38,6 +38,8 @@ library
                     ,   Actor.Clerk.Implementation
                     ,   Actor.Merchant
                     ,   Actor.Merchant.Implementation
+                    ,   Actor.Escrow
+                    ,   Actor.Escrow.Implementation
                     ,   Actor.Types
     
     build-depends:      base                            >=4.6   && <4.8
