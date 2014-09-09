@@ -11,6 +11,7 @@ import           Data.Data                                           hiding
 import           Data.IxSet
 import           Data.Typeable                                       hiding
                                                                       (Proxy)
+import           Data.UUID
 import           Data.UUID.V4
 
 import           Actor.Clerk
@@ -21,9 +22,16 @@ type BookTrans = (IxSet Order -> IxSet Order)
 
 type MatchT = State (OrderBook, [Match]) (Maybe Order)
 
+data OrderBook = OrderBook
+        { askBook :: !(IxSet Order)
+        , bidBook :: !(IxSet Order)
+        } deriving (Show)
+
+data Clerk = Clerk ClerkId EscrowId EscrowPid OrderBook deriving (Show)
+
 ----
 
-clerk :: ProcessDefinition OrderBook
+clerk :: ProcessDefinition Clerk
 clerk = ProcessDefinition
         { apiHandlers            = [ handleCall postAsk'
                                    , handleCall postBid'
@@ -37,31 +45,33 @@ clerk = ProcessDefinition
         , unhandledMessagePolicy = Drop
         }
 
-postAsk' :: OrderBook -> PostAsk -> Process (ProcessReply (Maybe OrderId) OrderBook)
-postAsk' ob (PostAsk mid p q)
+postAsk' :: Clerk -> PostAsk -> Process (ProcessReply (Maybe OrderId) Clerk)
+postAsk' (Clerk cid eid epid ob) (PostAsk mid p q)
     | p > 0 && q > 0 = do
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchAsk (Order oid mid p q) ob
-        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am m >> notifyBid bm m) ms
-        reply (Just oid) ob'
-    | otherwise      = reply Nothing ob
+        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am epid m >> notifyBid bm epid m) ms
+        reply (Just oid) (Clerk cid eid epid ob')
+    | otherwise      = reply Nothing (Clerk cid eid epid ob)
 
-postBid' :: OrderBook -> PostBid -> Process (ProcessReply (Maybe OrderId) OrderBook)
-postBid' ob (PostBid mid p q)
+postBid' :: Clerk -> PostBid -> Process (ProcessReply (Maybe OrderId) Clerk)
+postBid' (Clerk cid eid epid ob) (PostBid mid p q)
     | p > 0 && q > 0 = do
         uuid <- liftIO nextRandom
         let oid       = OrderId uuid
             (ob', ms) = matchBid (Order oid mid p q) ob
-        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am m >> notifyBid bm m) ms
-        reply (Just oid) ob'
-    | otherwise      = reply Nothing ob
+        mapM_ (\m@(Match _ am _ bm _ _) -> notifyAsk am epid m >> notifyBid bm epid m) ms
+        reply (Just oid) (Clerk cid eid epid ob')
+    | otherwise      = reply Nothing (Clerk cid eid epid ob)
 
-cancelAsk' :: OrderBook -> CancelAsk -> Process (ProcessReply Bool OrderBook)
-cancelAsk' ob (CancelAsk oid) = reply False (ob { askBook = deleteIx oid (askBook ob) })
+cancelAsk' :: Clerk -> CancelAsk -> Process (ProcessReply Bool Clerk)
+cancelAsk' (Clerk cid eid epid ob) (CancelAsk oid) =
+        reply False (Clerk cid eid epid (ob { askBook = deleteIx oid (askBook ob) }))
 
-cancelBid' :: OrderBook -> CancelBid -> Process (ProcessReply Bool OrderBook)
-cancelBid' ob (CancelBid oid) = reply False (ob { bidBook = deleteIx oid (bidBook ob) })
+cancelBid' :: Clerk -> CancelBid -> Process (ProcessReply Bool Clerk)
+cancelBid' (Clerk cid eid epid ob) (CancelBid oid) =
+        reply False (Clerk cid eid epid (ob { bidBook = deleteIx oid (bidBook ob) }))
 
 ---------------
 -- Utilities --

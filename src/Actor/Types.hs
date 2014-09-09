@@ -16,6 +16,13 @@ import           System.Random
 
 --
 
+newtype ConductorId = ConductorId { unConductorId :: UUID } deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype ClerkId     = ClerkId     { unClerkId :: UUID }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype MerchantId  = MerchantId  { unMerchantId :: UUID }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype EscrowId    = EscrowId    { unEscrowId :: UUID }    deriving (Eq, Ord, Typeable, Data, Binary, Show)
+
+--
+
 newtype ConductorPid = ConductorPid   { unConductorPid :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
 newtype ClerkPid     = ClerkPid       { unClerkPid :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show)
 newtype MerchantPid  = MerchantPid    { unMerchantPid :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show)
@@ -49,11 +56,6 @@ instance Indexable Order where
     empty = ixSet [ ixGen (Proxy :: Proxy OrderId)
                   , ixGen (Proxy :: Proxy Price)
                   ]
-
-data OrderBook = OrderBook
-        { askBook :: !(IxSet Order)
-        , bidBook :: !(IxSet Order)
-        } deriving (Show)
 
 --
 
