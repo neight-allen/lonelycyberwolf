@@ -68,7 +68,7 @@ type BidMerchant = MerchantPid
 type Ask = Order
 type Bid = Order
 
-data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq, Generic, Typeable)
+data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq, Generic, Typeable, Data, Show)
 
 instance Ord Match where
     compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
