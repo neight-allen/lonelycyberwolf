@@ -12,19 +12,17 @@ import           Data.Typeable                              hiding (Proxy)
 import           Data.UUID
 import           GHC.Generics
 import           GHC.Int
-import           Network.Transport
 import           System.Random
-import           Test.Tasty.QuickCheck
 
 --
 
-newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
-newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
-newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
-newtype EscrowId    = EscrowId      { unEscrowId :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype EscrowId    = EscrowId      { unEscrowId :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
 --
 
@@ -91,26 +89,3 @@ instance Eq Commodity where
 
 instance Ord Commodity where
     compare (Commodity _ n0 _) (Commodity _ n1 _) = compare n0 n1
-
---
-
-instance Arbitrary OrderId where
-    arbitrary = OrderId <$> choose (nil, nil)
-
-instance Arbitrary ProcessId where
-    arbitrary = ProcessId <$> arbitrary <*> arbitrary
-
-instance Arbitrary NodeId where
-    arbitrary = NodeId <$> arbitrary
-
-instance Arbitrary EndPointAddress where
-    arbitrary = EndPointAddress . BS.pack <$> vector 4
-
-instance Arbitrary LocalProcessId where
-    arbitrary = LocalProcessId <$> arbitrary <*> arbitrary
-
-instance Arbitrary Price where
-    arbitrary = choose (1, maxBound)
-
-instance Arbitrary Quantity where
-    arbitrary = choose (1, maxBound)
