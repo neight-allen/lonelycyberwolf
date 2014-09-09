@@ -19,16 +19,16 @@ import           GHC.Generics
 
 import           Actor.Types
 
-data NotifyAsk = NotifyAsk EscrowId Match deriving (Typeable, Generic)
+data NotifyAsk = NotifyAsk EscrowPid Match deriving (Typeable, Generic)
 instance Binary NotifyAsk
 
-data NotifyBid = NotifyBid EscrowId Match deriving (Typeable, Generic)
+data NotifyBid = NotifyBid EscrowPid Match deriving (Typeable, Generic)
 instance Binary NotifyBid
 
 ----
 
-notifyAsk :: MerchantId -> EscrowId -> Match -> Process ()
-notifyAsk MerchantId{..} eid m = call unMerchantId $ NotifyAsk eid m
+notifyAsk :: MerchantPid -> EscrowPid -> Match -> Process ()
+notifyAsk MerchantPid{..} eid m = call unMerchantPid $ NotifyAsk eid m
 
-notifyBid :: MerchantId -> EscrowId -> Match -> Process ()
-notifyBid MerchantId{..} eid m = call unMerchantId $ NotifyBid eid m
+notifyBid :: MerchantPid -> EscrowPid -> Match -> Process ()
+notifyBid MerchantPid{..} eid m = call unMerchantPid $ NotifyBid eid m

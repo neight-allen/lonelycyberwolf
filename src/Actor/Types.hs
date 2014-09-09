@@ -16,13 +16,10 @@ import           System.Random
 
 --
 
-newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
-
-newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show)
-
-newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show)
-
-newtype EscrowId    = EscrowId      { unEscrowId :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype ConductorPid = ConductorPid   { unConductorPid :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype ClerkPid     = ClerkPid       { unClerkPid :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype MerchantPid  = MerchantPid    { unMerchantPid :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype EscrowPid    = EscrowPid      { unEscrowPid :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
 --
 
@@ -40,7 +37,7 @@ instance Bounded Quantity where
 
 --
 
-data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
+data Order = Order OrderId MerchantPid Price Quantity deriving (Show, Typeable, Data)
 
 instance Eq Order where
     (Order id0 _ _ _) == (Order id1 _ _ _) = id0 == id1
@@ -63,8 +60,8 @@ data OrderBook = OrderBook
 type AskId = OrderId
 type BidId = OrderId
 
-type AskMerchant = MerchantId
-type BidMerchant = MerchantId
+type AskMerchant = MerchantPid
+type BidMerchant = MerchantPid
 
 type Ask = Order
 type Bid = Order
