@@ -1,9 +1,15 @@
 module Test.Actor.Clerk.Implementation where
 
+import           Control.Applicative
+import           Control.Monad.State
+import           Data.IxSet
 import           Test.Tasty                 as Test
 import           Test.Tasty.QuickCheck      as QC
 
 import           Actor.Clerk.Implementation
+import           Actor.Types
+
+import           Test.Actor.Types.Arbitrary
 
 tests :: Test.TestTree
 tests = Test.testGroup "Clerk" [testMatching]

@@ -13,16 +13,32 @@ import           Test.Tasty.QuickCheck
 import           Actor.Types
 
 instance Arbitrary ConductorId where
-    arbitrary = ConductorId <$> arbitrary
+    arbitrary = ConductorId <$> choose (nil, nil)
 
 instance Arbitrary ClerkId where
-    arbitrary = ClerkId <$> arbitrary
+    arbitrary = ClerkId <$> choose (nil, nil)
 
 instance Arbitrary MerchantId where
-    arbitrary = MerchantId <$> arbitrary
+    arbitrary = MerchantId <$> choose (nil, nil)
 
 instance Arbitrary EscrowId where
-    arbitrary = EscrowId <$> arbitrary
+    arbitrary = EscrowId <$> choose (nil, nil)
+
+--
+
+instance Arbitrary ConductorPid where
+    arbitrary = ConductorPid <$> arbitrary
+
+instance Arbitrary ClerkPid where
+    arbitrary = ClerkPid <$> arbitrary
+
+instance Arbitrary MerchantPid where
+    arbitrary = MerchantPid <$> arbitrary
+
+instance Arbitrary EscrowPid where
+    arbitrary = EscrowPid <$> arbitrary
+
+--
 
 instance Arbitrary OrderId where
     arbitrary = OrderId <$> choose (nil, nil)
