@@ -27,8 +27,8 @@ instance Binary CommitBid
 
 ----
 
-commitAsk :: EscrowId -> Match -> Process ()
-commitAsk EscrowId{..} m = call unEscrowId $ CommitAsk m
+commitAsk :: EscrowPid -> Match -> Process ()
+commitAsk EscrowPid{..} m = call unEscrowPid $ CommitAsk m
 
-commitBid :: EscrowId -> Match -> Process ()
-commitBid EscrowId{..} m = call unEscrowId $ CommitBid m
+commitBid :: EscrowPid -> Match -> Process ()
+commitBid EscrowPid{..} m = call unEscrowPid $ CommitBid m
