@@ -23,9 +23,6 @@ import           Actor.Escrow
 import           Actor.Merchant
 import           Actor.Types
 
--- This is dirty, fix this
-import           Actor.Escrow.Implementation
-
 data CommodityReal = CommodityReal CommodityId Quantity deriving (Typeable, Data, Generic, Show)
 
 instance Eq CommodityReal where
@@ -50,7 +47,6 @@ merchant :: ProcessDefinition Merchant
 merchant = ProcessDefinition
         { apiHandlers            = [ handleCall notifyAsk'
                                    , handleCall notifyBid'
-                                   , handleCall notifyEscrow'
                                    ]
         , infoHandlers           = []
         , exitHandlers           = []
@@ -66,13 +62,12 @@ notifyAsk' s (NotifyAsk m) = do
 
 {- Asking Merchant creates the escrow, and passes the id to the bidder -}
 notifyBid' :: Merchant -> NotifyBid -> Process (ProcessReply () Merchant)
-notifyBid' s (NotifyBid m@(Match aid amid bid bmid p q)) = do
-        pid <- spawnLocal $ serve Holding init escrow
-        let eid = EscrowId pid
-        notifyEscrow bmid bid eid
-        commitAsk eid m
+notifyBid' s (NotifyBid m) = do
         noReply_ s
-    where init h = return $ InitOk h Infinity
-
-notifyEscrow' :: Merchant -> NotifyEscrow -> Process (ProcessReply () Merchant)
-notifyEscrow' = undefined
+{-notifyBid' s (NotifyBid m@(Match aid amid bid bmid p q)) = do-}
+        {-pid <- spawnLocal $ serve Holding init escrow-}
+        {-let eid = EscrowId pid-}
+        {-notifyEscrow bmid bid eid-}
+        {-commitAsk eid m-}
+        {-noReply_ s-}
+    {-where init h = return $ InitOk h Infinity-}
