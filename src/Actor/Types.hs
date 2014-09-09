@@ -12,19 +12,21 @@ import           Data.Typeable                              hiding (Proxy)
 import           Data.UUID
 import           GHC.Generics
 import           GHC.Int
-import           Network.Transport
 import           System.Random
-import           Test.Tasty.QuickCheck
 
 --
 
-newtype ConductorId = ConductorId   { unConductorId :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype ConductorId = ConductorId { unConductorId :: UUID } deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype ClerkId     = ClerkId     { unClerkId :: UUID }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype MerchantId  = MerchantId  { unMerchantId :: UUID }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype EscrowId    = EscrowId    { unEscrowId :: UUID }    deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
-newtype ClerkId     = ClerkId       { unClerkId :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+--
 
-newtype MerchantId  = MerchantId    { unMerchantId :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
-
-newtype EscrowId    = EscrowId      { unEscrowId :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show, Arbitrary)
+newtype ConductorPid = ConductorPid   { unConductorPid :: ProcessId }  deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype ClerkPid     = ClerkPid       { unClerkPid :: ProcessId }      deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype MerchantPid  = MerchantPid    { unMerchantPid :: ProcessId }   deriving (Eq, Ord, Typeable, Data, Binary, Show)
+newtype EscrowPid    = EscrowPid      { unEscrowPid :: ProcessId }     deriving (Eq, Ord, Typeable, Data, Binary, Show)
 
 --
 
@@ -42,7 +44,7 @@ instance Bounded Quantity where
 
 --
 
-data Order = Order OrderId MerchantId Price Quantity deriving (Show, Typeable, Data)
+data Order = Order OrderId MerchantPid Price Quantity deriving (Show, Typeable, Data)
 
 instance Eq Order where
     (Order id0 _ _ _) == (Order id1 _ _ _) = id0 == id1
@@ -55,18 +57,13 @@ instance Indexable Order where
                   , ixGen (Proxy :: Proxy Price)
                   ]
 
-data OrderBook = OrderBook
-        { askBook :: !(IxSet Order)
-        , bidBook :: !(IxSet Order)
-        } deriving (Show)
-
 --
 
 type AskId = OrderId
 type BidId = OrderId
 
-type AskMerchant = MerchantId
-type BidMerchant = MerchantId
+type AskMerchant = MerchantPid
+type BidMerchant = MerchantPid
 
 type Ask = Order
 type Bid = Order
@@ -91,26 +88,3 @@ instance Eq Commodity where
 
 instance Ord Commodity where
     compare (Commodity _ n0 _) (Commodity _ n1 _) = compare n0 n1
-
---
-
-instance Arbitrary OrderId where
-    arbitrary = OrderId <$> choose (nil, nil)
-
-instance Arbitrary ProcessId where
-    arbitrary = ProcessId <$> arbitrary <*> arbitrary
-
-instance Arbitrary NodeId where
-    arbitrary = NodeId <$> arbitrary
-
-instance Arbitrary EndPointAddress where
-    arbitrary = EndPointAddress . BS.pack <$> vector 4
-
-instance Arbitrary LocalProcessId where
-    arbitrary = LocalProcessId <$> arbitrary <*> arbitrary
-
-instance Arbitrary Price where
-    arbitrary = choose (1, maxBound)
-
-instance Arbitrary Quantity where
-    arbitrary = choose (1, maxBound)

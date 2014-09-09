@@ -57,12 +57,12 @@ merchant = ProcessDefinition
 
 {- Bidding Merchant waits for an escrow to come in from the Asker -}
 notifyAsk' :: Merchant -> NotifyAsk -> Process (ProcessReply () Merchant)
-notifyAsk' s (NotifyAsk m) = do
+notifyAsk' s (NotifyAsk epid m) = do
         noReply_ s
 
 {- Asking Merchant creates the escrow, and passes the id to the bidder -}
 notifyBid' :: Merchant -> NotifyBid -> Process (ProcessReply () Merchant)
-notifyBid' s (NotifyBid m) = do
+notifyBid' s (NotifyBid epid m) = do
         noReply_ s
 {-notifyBid' s (NotifyBid m@(Match aid amid bid bmid p q)) = do-}
         {-pid <- spawnLocal $ serve Holding init escrow-}
