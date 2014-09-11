@@ -62,13 +62,16 @@ instance Indexable Order where
 type AskId = OrderId
 type BidId = OrderId
 
-type AskMerchant = MerchantPid
-type BidMerchant = MerchantPid
+type AskMerchantId = MerchantId
+type BidMerchantId = MerchantId
+
+type AskMerchantPid = MerchantPid
+type BidMerchantPid = MerchantPid
 
 type Ask = Order
 type Bid = Order
 
-data Match = Match AskId AskMerchant BidId BidMerchant Price Quantity deriving (Eq, Generic, Typeable, Data, Show)
+data Match = Match AskId AskMerchantPid BidId BidMerchantPid Price Quantity deriving (Eq, Generic, Typeable, Data, Show)
 
 instance Ord Match where
     compare (Match _ _ _ _ p0 _) (Match _ _ _ _ p1 _) = compare p0 p1
@@ -80,7 +83,7 @@ instance Binary Match
 type Name        = Text
 type Description = Text
 
-newtype CommodityId = CommdityId { unCommodityId :: UUID } deriving (Eq, Ord, Typeable, Data, Binary, Show, Random)
+newtype CommodityId = CommodityId { unCommodityId :: UUID } deriving (Eq, Ord, Typeable, Data, Binary, Show, Random)
 data Commodity = Commodity CommodityId Name Description deriving (Typeable, Data, Generic, Show)
 
 instance Eq Commodity where
